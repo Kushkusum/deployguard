@@ -56,10 +56,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Pull latest image into k3d
+      - name: Build image locally and import into k3d
+        # Deliberately built locally rather than `docker pull`-ed from GHCR.
+        # Docker Desktop's containerd image store has a bug where pulled (not
+        # locally-built) images lose track of layer content on export, which
+        # breaks both `docker save`/`k3d image import` and even a plain
+        # `docker push` to a local registry. Locally-built images don't hit
+        # this — GHCR still gets the cloud-built image as the canonical
+        # versioned artifact, it's just not the source for local deployment.
         run: |
-          docker pull ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} orders:canary-latest
+          docker build -t orders:canary-latest ./services/orders
           k3d image import orders:canary-latest -c deployguard
 
       - name: Update canary deployment
