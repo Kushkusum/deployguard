@@ -117,8 +117,24 @@ jobs:
 
       - name: Rollback canary
         if: steps.gate.outputs.decision == 'rollback'
+        # kubectl rollout undo alone is not reliable here for two reasons,
+        # both confirmed by testing: (1) "Update canary deployment" runs
+        # `rollout restart` on every run unconditionally, so by the time the
+        # gate decides, the "previous revision" undo targets is often just
+        # another copy of the same bad state, not the last known-good one;
+        # (2) the canary image is always tagged the same mutable string
+        # (orders:canary-latest), so even a "successful" undo restores a pod
+        # template whose image field resolves to whatever content was most
+        # recently imported, not genuinely older content. Real regressions
+        # in this project are represented by BUG_MODE (Day 1's deliberate,
+        # controllable stand-in for a code regression), so rollback also
+        # resets that directly - making the action meaningful - while still
+        # running rollout undo for real, for what it's worth on the pod
+        # template itself.
         run: |
           kubectl rollout undo deployment/orders-canary
+          kubectl set env deployment/orders-canary BUG_MODE=false
+          kubectl rollout status deployment/orders-canary
           Write-Host "Rolled back canary deployment."
 
       - name: Hold
