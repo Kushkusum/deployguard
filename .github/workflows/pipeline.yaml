@@ -71,9 +71,47 @@ jobs:
       - name: Update canary deployment
         run: |
           kubectl set image deployment/orders-canary orders=orders:canary-latest
+          # kubectl set image is a no-op when the tag string is unchanged (it
+          # always is here - every run reuses "orders:canary-latest"), even
+          # though the underlying image content is new each time. Confirmed
+          # by testing: without this restart, pods keep running stale code
+          # indefinitely after the very first deploy. rollout restart forces
+          # pod recreation regardless of whether the tag string changed.
+          kubectl rollout restart deployment/orders-canary
           kubectl rollout status deployment/orders-canary
 
-      - name: Gate placeholder — agent decision comes here (Day 4/5)
+      - name: Port-forward Prometheus (background)
         run: |
-          Write-Host "TODO: call DeployGuard agent, decide promote/rollback/hold"
-          Write-Host "For now, treating as auto-promote so the pipeline completes"
+          Start-Process -NoNewWindow -FilePath "kubectl" -ArgumentList "port-forward svc/prometheus-svc 9090:9090"
+          Start-Sleep -Seconds 5
+
+      - name: Run DeployGuard agent gate
+        id: gate
+        working-directory: ./agent
+        run: |
+          pip install -r requirements.txt
+          python pipeline_gate.py
+
+      - name: Promote canary
+        if: steps.gate.outputs.decision == 'promote'
+        run: |
+          kubectl scale deployment/orders-canary --replicas=9
+          kubectl scale deployment/orders-stable --replicas=1
+          Write-Host "Promoted canary to full traffic."
+
+      - name: Rollback canary
+        if: steps.gate.outputs.decision == 'rollback'
+        run: |
+          kubectl rollout undo deployment/orders-canary
+          Write-Host "Rolled back canary deployment."
+
+      - name: Hold
+        if: steps.gate.outputs.decision == 'hold'
+        run: |
+          Write-Host "Holding - no traffic shift, more data needed before deciding."
+
+      - name: Upload incident report
+        uses: actions/upload-artifact@v4
+        with:
+          name: incident-report
+          path: agent/incident_report.md

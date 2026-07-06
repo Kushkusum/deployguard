@@ -1,8 +1,10 @@
 import json
+import os
 import chromadb
 from chromadb.utils import embedding_functions
 
-client = chromadb.PersistentClient(path="./chroma_db")
+CHROMA_PATH = os.getenv("CHROMA_DB_PATH", os.path.expanduser("~/deployguard_data/chroma_db"))
+client = chromadb.PersistentClient(path=CHROMA_PATH)
 embed_fn = embedding_functions.OllamaEmbeddingFunction(
     url="http://localhost:11434/api/embeddings",
     model_name="nomic-embed-text",

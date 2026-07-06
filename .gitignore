@@ -6,3 +6,4 @@ chroma_db/
 *.log
 .DS_Store
 .pytest_cache/
+incident_report.md
