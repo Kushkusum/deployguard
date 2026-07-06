@@ -1,5 +1,5 @@
 # orders service: FastAPI + Redis, with a BUG_MODE toggle for canary testing.
-# Demo scene 1 - clean release.
+# Demo scene 2 - regression release, canary running BUG_MODE=true.
 import os
 import time
 import redis
