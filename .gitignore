@@ -7,3 +7,4 @@ chroma_db/
 .DS_Store
 .pytest_cache/
 incident_report.md
+*.mp4
