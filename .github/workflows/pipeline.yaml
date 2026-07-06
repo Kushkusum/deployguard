@@ -80,10 +80,26 @@ jobs:
           kubectl rollout restart deployment/orders-canary
           kubectl rollout status deployment/orders-canary
 
+      - name: Generate canary traffic for evaluation
+        # The gate can only see what Prometheus has scraped. Counters reset
+        # to zero every time a pod restarts (which just happened above), and
+        # nothing else sends traffic to the service - so without this step
+        # the Executor would see zero requests and default every signal to
+        # 0, which reads as "perfectly healthy" and always promotes, even a
+        # genuinely broken canary. Traffic must go through the Service from
+        # inside the cluster (not kubectl port-forward, which pins to a
+        # single backing pod and never actually load-balances against a
+        # Service - confirmed during Day 2 testing).
+        run: |
+          kubectl run gate-traffic-gen --image=curlimages/curl:8.10.1 --restart=Never --command -- sleep 3600
+          kubectl wait --for=condition=Ready pod/gate-traffic-gen --timeout=60s
+          kubectl exec gate-traffic-gen -- sh -c 'for i in $(seq 1 40); do curl -s -o /dev/null http://orders-svc:8000/orders; done'
+          kubectl delete pod gate-traffic-gen --ignore-not-found
+
       - name: Port-forward Prometheus (background)
         run: |
           Start-Process -NoNewWindow -FilePath "kubectl" -ArgumentList "port-forward svc/prometheus-svc 9090:9090"
-          Start-Sleep -Seconds 5
+          Start-Sleep -Seconds 7
 
       - name: Run DeployGuard agent gate
         id: gate
