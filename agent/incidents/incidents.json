@@ -1,0 +1,104 @@
+[
+  {
+    "id": "inc-001",
+    "summary": "Canary p95 latency spiked to 2.1s during first 60s after rollout, stable pods unaffected.",
+    "root_cause": "JVM/interpreter cold start, no code defect.",
+    "resolution": "Promoted after latency normalized within 2 minutes."
+  },
+  {
+    "id": "inc-002",
+    "summary": "Canary error rate hit 27% on POST /orders, latency normal, stable pods showed zero errors.",
+    "root_cause": "Genuine regression introduced in new code path.",
+    "resolution": "Rolled back immediately, error traced to a null check removed in the diff."
+  },
+  {
+    "id": "inc-003",
+    "summary": "Canary latency elevated 15% above stable, error rate unchanged, gradually returned to baseline over 5 minutes.",
+    "root_cause": "Downstream Redis connection pool warm-up, expected behavior.",
+    "resolution": "Held for 5 minutes, then promoted once latency matched stable."
+  },
+  {
+    "id": "inc-004",
+    "summary": "Canary latency roughly 100x stable (2s vs 0.02s), consistent across every request, no recovery over 10 minutes.",
+    "root_cause": "Blocking sleep/wait accidentally left in a code path, or a synchronous call to a dependency that should have been async.",
+    "resolution": "Rolled back immediately; sustained order-of-magnitude latency gap with no recovery trend is never a warm-up artifact."
+  },
+  {
+    "id": "inc-005",
+    "summary": "Canary error rate 2%, stable error rate 1.8%, both within normal background noise for this endpoint.",
+    "root_cause": "No regression; both tracks show the same baseline error rate from unrelated client-side retry behavior.",
+    "resolution": "Promoted; error rate difference was not statistically meaningful."
+  },
+  {
+    "id": "inc-006",
+    "summary": "Canary error rate spiked to 40% for exactly 90 seconds then dropped to 0%, latency unaffected throughout.",
+    "root_cause": "Transient downstream dependency (Redis) restart during a rolling update, unrelated to the canary code itself.",
+    "resolution": "Held during the spike, promoted once error rate stayed at 0% for 5 consecutive minutes."
+  },
+  {
+    "id": "inc-007",
+    "summary": "Canary latency 3x stable and error rate 15%, both elevated simultaneously and trending worse over time.",
+    "root_cause": "Memory leak in new code causing garbage collection pressure, degrading both latency and reliability together.",
+    "resolution": "Rolled back; combined and worsening latency + error signals are a strong regression indicator."
+  },
+  {
+    "id": "inc-008",
+    "summary": "Canary latency identical to stable, zero errors, all metrics nominal after 10 minutes of traffic.",
+    "root_cause": "No regression detected.",
+    "resolution": "Promoted immediately; clean signals across the board."
+  },
+  {
+    "id": "inc-009",
+    "summary": "Canary error rate 8%, all failures traced to a single downstream third-party API returning 503s, stable pods calling the same API show identical 8% failure rate.",
+    "root_cause": "Upstream third-party outage, not a canary defect; both tracks equally affected.",
+    "resolution": "Promoted; error source was external and symmetric across stable and canary."
+  },
+  {
+    "id": "inc-010",
+    "summary": "Canary latency 12% higher than stable during a traffic spike, returned to parity once traffic normalized.",
+    "root_cause": "Canary running fewer replicas than stable, so it saturated sooner under the same load per-pod; not a code defect.",
+    "resolution": "Held through the traffic spike, promoted once latency matched stable at normal load."
+  },
+  {
+    "id": "inc-011",
+    "summary": "Canary error rate 35%, all failures are 500s with the same stack trace pointing at a null pointer in newly added validation logic, stable shows 0% errors.",
+    "root_cause": "Genuine code regression: missing null check in new validation path.",
+    "resolution": "Rolled back; identical, reproducible errors isolated to the new code."
+  },
+  {
+    "id": "inc-012",
+    "summary": "Canary and stable both show a brief latency bump to 2x baseline for about 30 seconds, correlated with a cluster-wide node autoscaling event.",
+    "root_cause": "Infrastructure-level scheduling disruption affecting all pods equally, unrelated to the canary release.",
+    "resolution": "Held briefly, promoted once both tracks returned to baseline together."
+  },
+  {
+    "id": "inc-013",
+    "summary": "Canary latency steadily increasing over 15 minutes, now at 4x stable and still climbing, no plateau.",
+    "root_cause": "Unbounded queue or connection buildup in new code, a slow-building resource exhaustion bug.",
+    "resolution": "Rolled back before full exhaustion; a steadily worsening trend with no plateau is a strong rollback signal even before it becomes catastrophic."
+  },
+  {
+    "id": "inc-014",
+    "summary": "Canary shows a single isolated error out of 500 requests, latency nominal, no repeat occurrences in the following 10 minutes.",
+    "root_cause": "One-off transient blip, likely a single dropped connection; not reproducible.",
+    "resolution": "Promoted; an isolated singleton error with no recurrence is noise, not a regression."
+  },
+  {
+    "id": "inc-015",
+    "summary": "Canary error rate 22% concentrated entirely on POST requests, GET requests show 0% errors on canary, stable shows 0% on both.",
+    "root_cause": "Regression specific to the write path introduced in the new release, read path unaffected.",
+    "resolution": "Rolled back; a large, endpoint-specific error rate isolated to canary is a clear regression even when it doesn't affect every endpoint."
+  },
+  {
+    "id": "inc-016",
+    "summary": "Canary latency and error rate both nominal for the first 3 minutes, then errors jump to 18% right as a scheduled batch job begins running on the same node.",
+    "root_cause": "Resource contention with an unrelated batch job sharing the node, not a canary code issue.",
+    "resolution": "Held until the batch job completed, promoted once errors returned to 0% afterward."
+  },
+  {
+    "id": "inc-017",
+    "summary": "Canary latency 1.5x stable, error rate 0%, signal has been stable (neither improving nor worsening) for 8 minutes.",
+    "root_cause": "Unclear; a mild, persistent latency regression without errors, not yet explained by warm-up or infra causes.",
+    "resolution": "Held for further observation rather than promoting or rolling back on ambiguous data; escalated for manual review after 15 minutes if unresolved."
+  }
+]

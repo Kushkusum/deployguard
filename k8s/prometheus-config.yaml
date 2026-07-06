@@ -14,3 +14,6 @@ data:
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
             regex: orders
+          - source_labels: [__meta_kubernetes_pod_label_track]
+            action: replace
+            target_label: track
