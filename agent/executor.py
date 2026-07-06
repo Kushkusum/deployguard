@@ -1,8 +1,10 @@
+import os
 import requests
 import chromadb
 from chromadb.utils import embedding_functions
 
 PROMETHEUS_URL = "http://localhost:9090"  # port-forwarded: kubectl port-forward svc/prometheus-svc 9090:9090
+CHROMA_PATH = os.getenv("CHROMA_DB_PATH", os.path.expanduser("~/deployguard_data/chroma_db"))
 
 
 def query_prometheus(promql):
@@ -37,7 +39,7 @@ def get_canary_signals():
 
 
 def retrieve_similar_incidents(query_text, n=3):
-    client = chromadb.PersistentClient(path="./chroma_db")
+    client = chromadb.PersistentClient(path=CHROMA_PATH)
     embed_fn = embedding_functions.OllamaEmbeddingFunction(
         url="http://localhost:11434/api/embeddings", model_name="nomic-embed-text"
     )
