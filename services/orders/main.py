@@ -1,4 +1,4 @@
-# orders service: FastAPI + Redis, with a BUG_MODE toggle for canary testing
+# orders service: FastAPI + Redis, with a BUG_MODE toggle for canary testing.
 import os
 import time
 import redis
